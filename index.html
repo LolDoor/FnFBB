@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>FNF: Baldi Edition - PixiJS</title>
+    <style>
+        body { margin: 0; background: #000; color: white; font-family: 'Comic Sans MS', cursive, sans-serif; overflow: hidden; }
+        
+        #ui-layer { 
+            position: absolute; width: 100%; height: 100%; 
+            display: flex; flex-direction: column; justify-content: center; align-items: center; 
+            z-index: 1000; background: rgba(0,0,0,0.85); 
+        }
+        
+        .menu-content { 
+            text-align: center; background: #fff; padding: 40px 50px; 
+            border: 12px solid #f39c12; border-radius: 25px; 
+            box-shadow: 0 0 40px #ffeb3b, 0 0 80px rgba(255,235,59,0.5); 
+            max-width: 620px; position: relative; 
+        }
+
+        #main-menu h1 { font-size: 62px; margin: 0 0 15px; line-height: 1; text-shadow: 6px 6px 0 #000, -4px -4px 0 #000, 4px -4px 0 #000, -4px 4px 0 #000; }
+        .baldis { color: #4ade80; } .basics { color: #8e24aa; } .in-funkin { color: #f39c12; font-size: 52px; display: block; margin-top: -15px; }
+
+        .big-play-btn { background: #f44336; color: white; font-size: 42px; padding: 20px 80px; border: 8px solid #000; border-radius: 20px; cursor: pointer; box-shadow: 0 10px 0 #000; transition: all 0.1s; }
+        .big-play-btn:hover { transform: translateY(-4px); box-shadow: 0 14px 0 #000; }
+
+        .mode-btn { padding: 18px 45px; font-size: 28px; cursor: pointer; font-weight: bold; border: 6px solid #000; margin: 12px; transition: all 0.1s ease; border-radius: 15px; }
+        .mode-btn:hover { transform: scale(1.12) rotate(3deg); box-shadow: 0 0 25px #ffeb3b; }
+
+        #game-view { 
+            display: none; 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: #000; 
+            z-index: 900; 
+        }
+
+        #cutscene-video { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            z-index: 2000; 
+            background: #000; 
+            display: none; 
+            object-fit: contain;
+        }
+
+        .lane-container { position: absolute; top: 60px; width: 340px; height: calc(100% - 120px); z-index: 10; }
+        #dad-area { left: 80px; } #bf-area { right: 80px; }
+        .receptors { display: flex; gap: 20px; position: relative; z-index: 20; justify-content: center; }
+        .receptor { width: 72px; height: 72px; border: 5px solid #222; border-radius: 18px; display: flex; justify-content: center; align-items: center; font-size: 38px; background: rgba(255,255,255,0.12); box-shadow: 0 0 15px rgba(255,255,255,0.3), inset 0 0 12px rgba(0,0,0,0.6); transition: all 0.08s ease; }
+        .receptor.pressed { animation: receptorPress 0.12s ease forwards; }
+        @keyframes receptorPress { 0% { transform: scale(1); } 40% { transform: scale(1.25); } 100% { transform: scale(1); } }
+        .receptor-dir-0 { border-color: #c24b99; } .receptor-dir-1 { border-color: #00ffff; } .receptor-dir-2 { border-color: #12fa05; } .receptor-dir-3 { border-color: #f9393f; }
+        .notes-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 15; }
+        .note { position: absolute; width: 72px; height: 72px; border-radius: 18px; display: flex; justify-content: center; align-items: center; font-size: 38px; font-weight: bold; box-shadow: 0 0 18px 6px currentColor, inset 0 0 12px rgba(255,255,255,0.9); }
+        .sustain-trail { position: absolute; width: 32px; z-index: 5; opacity: 0.75; border-radius: 8px; transform-origin: top; box-shadow: 0 0 12px 4px currentColor; }
+        .dir-0 { left: 0px; background: #c24b99; } .sustain-0 { left: 20px; background: #c24b99; }
+        .dir-1 { left: 90px; background: #00ffff; } .sustain-1 { left: 110px; background: #00ffff; }
+        .dir-2 { left: 180px; background: #12fa05; } .sustain-2 { left: 200px; background: #12fa05; }
+        .dir-3 { left: 270px; background: #f9393f; } .sustain-3 { left: 290px; background: #f9393f; }
+        #stats-bar { position: absolute; bottom: 25px; width: 100%; text-align: center; font-size: 28px; font-weight: bold; text-shadow: 3px 3px 0 #000; background: rgba(0,0,0,0.4); padding: 8px 0; border-top: 4px solid #ffeb3b; border-bottom: 4px solid #ffeb3b; z-index: 30; }
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <div id="main-menu" class="menu-content">
+            <h1><span class="baldis">Baldi's</span> <span class="basics">BASICS</span><span class="in-funkin">in FUNKIN'</span></h1>
+            <p class="demo-text">2026 Demo • The Teachers' Lounge</p>
+            <button class="big-play-btn" onclick="playConfirmSound(); showModeSelect()">▶ PLAY</button>
+            <div class="side-buttons" style="position:absolute;right:-120px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:15px;">
+                <div class="side-btn" onclick="playConfirmSound(); alert('Settings пока в разработке 😊')">⚙️ Settings</div>
+                <div class="side-btn" onclick="playConfirmSound(); alert('Credits: сделано с любовью для тебя!')">ℹ️ Credits</div>
+                <div class="side-btn" onclick="playConfirmSound(); window.open('https://loldoor.github.io/FnFBB','_blank')">🌐 Website</div>
+            </div>
+        </div>
+
+        <div id="mode-menu" class="menu-content" style="display:none;">
+            <h1 style="font-size:48px;margin-bottom:40px;">CHOOSE YOUR STYLE</h1>
+            <div onclick="playConfirmSound(); startStoryMode()" class="mode-option" style="background:#4ade80;color:#222;font-weight:bold;font-size:38px;padding:25px 60px;margin:20px;border:8px solid #222;border-radius:20px;cursor:pointer;">Story Style</div>
+            <div onclick="playConfirmSound(); showFreeplay()" class="mode-option" style="background:#4ade80;color:#222;font-weight:bold;font-size:38px;padding:25px 60px;margin:20px;border:8px solid #222;border-radius:20px;cursor:pointer;">Freeplay Style</div>
+            <button onclick="playConfirmSound(); backToMain()" style="margin-top:40px;background:#f44336;color:white;padding:12px 40px;font-size:22px;border:4px solid #000;border-radius:12px;">← Назад</button>
+        </div>
+
+        <div id="freeplay-menu" class="menu-content" style="display:none;">
+            <h1 class="freeplay-title" style="font-size:36px;color:#f39c12;margin-bottom:30px;text-shadow:3px 3px #000;">FREEPLAY</h1>
+            <p style="color:#222;font-size:22px;margin-bottom:30px;">Выбери песню и сложность</p>
+            <div style="margin-bottom:35px;">
+                <h3 style="color:#000;margin-bottom:12px;font-size:28px;">Baldi's Expulsion</h3>
+                <button class="mode-btn" style="background:#8eff8e" onclick="startSong(0,1.0)">EASY</button>
+                <button class="mode-btn" style="background:#ffff8e" onclick="startSong(0,1.6)">NORMAL</button>
+            </div>
+            <div style="margin-bottom:35px;">
+                <h3 style="color:#000;margin-bottom:12px;font-size:28px;">Baldi's Basics</h3>
+                <button class="mode-btn" style="background:#8eff8e" onclick="startSong(1,1.0)">EASY</button>
+                <button class="mode-btn" style="background:#ffff8e" onclick="startSong(1,1.6)">NORMAL</button>
+            </div>
+            <div>
+                <h3 style="color:#000;margin-bottom:12px;font-size:28px;">Lesson Good</h3>
+                <button class="mode-btn" style="background:#8eff8e" onclick="startSong(2,1.0)">EASY</button>
+                <button class="mode-btn" style="background:#ffff8e" onclick="startSong(2,1.6)">NORMAL</button>
+            </div>
+            <button onclick="playConfirmSound(); backToMain()" style="margin-top:40px;background:#f44336;color:white;padding:12px 40px;font-size:22px;border:4px solid #000;border-radius:12px;">← Назад в главное меню</button>
+        </div>
+    </div>
+
+    <div id="game-view">
+        <video id="cutscene-video" controls="false"></video>
+        <div id="dad-area" class="lane-container"><div class="receptors" id="receptors-dad"></div><div class="notes-container" id="dad-notes"></div></div>
+        <div id="bf-area" class="lane-container"><div class="receptors" id="receptors-bf"></div><div class="notes-container" id="bf-notes"></div></div>
+        <div id="stats-bar">Score: 0 | Misses: 0</div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@7/dist/pixi.min.js"></script>
+    <script>
+        const arrows = ['←', '↓', '↑', '→'];
+        const keyMap = { 'a':0, 'ф':0, 'arrowleft':0, 's':1, 'ы':1, 'arrowdown':1, 'w':2, 'ц':2, 'arrowup':2, 'd':3, 'в':3, 'arrowright':3 };
+
+        const songList = [
+            { displayName: "Baldi's Expulsion", inst: 'https://loldoor.github.io/FnFBB/Inst.ogg',     voices: 'https://loldoor.github.io/FnFBB/Voices.ogg',     json: 'https://loldoor.github.io/FnFBB/expulsion.json' },
+            { displayName: "Baldi's Basics",     inst: 'https://loldoor.github.io/FnFBB/Inst.mp3',    voices: 'https://loldoor.github.io/FnFBB/Voices.mp3',    json: 'https://loldoor.github.io/FnFBB/basics.json' },
+            { displayName: "Lesson Good",        inst: 'https://loldoor.github.io/FnFBB/Inst1.ogg',   voices: 'https://loldoor.github.io/FnFBB/Voices1.ogg',   json: 'https://loldoor.github.io/FnFBB/lesson-good.json' }
+        ];
+
+        let loadedSongDatas = [], bfNotes = [], dadNotes = [];
+        let gameStarted = false, scrollSpeed = 1.5, score = 0, misses = 0;
+        let curTime = 0, lastAudioTime = 0, lastUpdate = performance.now();
+        let currentInst, currentVoices, menuMusic;
+        let confirmSound = new Audio('https://loldoor.github.io/FnFBB/confirmMenu.ogg');
+        let introSound = new Audio('https://loldoor.github.io/FnFBB/bbifarintro.ogg');
+
+        let inStoryMode = false;
+        let storyStep = 0;
+
+        const storySequence = [
+            { type: "video", src: "https://loldoor.github.io/FnFBB/basics.mp4" },
+            { type: "song", index: 1 },
+            { type: "video", src: "https://loldoor.github.io/FnFBB/lesson-good.mp4" },
+            { type: "song", index: 2 },
+            { type: "song", index: 0 },
+            { type: "video", src: "https://loldoor.github.io/FnFBB/post-expulsion.mp4" }
+        ];
+
+        const videoEl = document.getElementById('cutscene-video');
+        const uiLayer = document.getElementById('ui-layer');
+        const gameView = document.getElementById('game-view');
+
+        // Инициализация рецепторов
+        ['dad', 'bf'].forEach(side => {
+            const container = document.getElementById(`receptors-${side}`);
+            arrows.forEach((a, i) => {
+                const r = document.createElement('div');
+                r.className = `receptor receptor-dir-${i}`;
+                r.id = `r-${side}-${i}`;
+                r.innerText = a;
+                container.appendChild(r);
+            });
+        });
+
+        function playIntro() {
+            uiLayer.style.display = 'none';
+            gameView.style.display = 'block';
+            videoEl.src = "https://loldoor.github.io/FnFBB/intro.mp4";
+            videoEl.style.display = 'block';
+            videoEl.play();
+
+            videoEl.onended = () => {
+                videoEl.style.display = 'none';
+                gameView.style.display = 'none';
+                uiLayer.style.display = 'flex';
+
+                menuMusic = new Audio('https://loldoor.github.io/FnFBB/Attendance.mp3');
+                menuMusic.loop = true;
+                menuMusic.play().catch(() => {});
+                introSound.play().catch(() => {});
+
+                document.getElementById('main-menu').style.display = 'block';
+            };
+        }
+
+        Promise.all(songList.map(s => fetch(s.json).then(res => res.json()))).then(datas => {
+            loadedSongDatas = datas;
+            playIntro();
+        });
+
+        function playConfirmSound() {
+            confirmSound.currentTime = 0;
+            confirmSound.play().catch(() => {});
+        }
+
+        function resetToMenu() {
+            gameStarted = false;
+            inStoryMode = false;
+            if (currentInst) currentInst.pause();
+            if (currentVoices) currentVoices.pause();
+            document.getElementById('dad-notes').innerHTML = '';
+            document.getElementById('bf-notes').innerHTML = '';
+            score = 0; misses = 0; updateStats();
+            gameView.style.display = 'none';
+            uiLayer.style.display = 'flex';
+            if (menuMusic) menuMusic.play().catch(() => {});
+            hideAllMenus();
+            document.getElementById('main-menu').style.display = 'block';
+            videoEl.style.display = 'none';
+        }
+
+        function hideAllMenus() {
+            document.getElementById('main-menu').style.display = 'none';
+            document.getElementById('mode-menu').style.display = 'none';
+            document.getElementById('freeplay-menu').style.display = 'none';
+        }
+        function showModeSelect() { hideAllMenus(); document.getElementById('mode-menu').style.display = 'block'; }
+        function showFreeplay() { hideAllMenus(); document.getElementById('freeplay-menu').style.display = 'block'; }
+        function backToMain() { hideAllMenus(); document.getElementById('main-menu').style.display = 'block'; }
+
+        function startStoryMode() {
+            inStoryMode = true;
+            storyStep = 0;
+            if (menuMusic) menuMusic.pause();
+            uiLayer.style.display = 'none';
+            gameView.style.display = 'block';
+            playNextStoryStep();
+        }
+
+        function playNextStoryStep() {
+            const step = storySequence[storyStep];
+            if (!step) return resetToMenu();
+
+            if (step.type === "video") {
+                videoEl.src = step.src;
+                videoEl.style.display = 'block';
+                videoEl.play();
+                videoEl.onended = () => {
+                    videoEl.style.display = 'none';
+                    storyStep++;
+                    playNextStoryStep();
+                };
+            } else if (step.type === "song") {
+                startSong(step.index, 1.6, true);
+            }
+        }
+
+        // ====================== ИСПРАВЛЕННАЯ startSong ======================
+        async function startSong(songIndex, speed, isStory = false) {
+            scrollSpeed = speed;
+            const song = songList[songIndex];
+            if (menuMusic) menuMusic.pause();
+
+            score = 0; misses = 0; updateStats();
+            document.getElementById('dad-notes').innerHTML = '';
+            document.getElementById('bf-notes').innerHTML = '';
+
+            bfNotes = []; dadNotes = [];
+            loadedSongDatas[songIndex].song.notes.forEach(section => {
+                section.sectionNotes.forEach(n => {
+                    const time = n[0], dir = n[1], dur = n[2] || 0;
+                    let isBF = section.mustHitSection ? dir <= 3 : dir >= 4;
+                    const note = { time, dir: dir % 4, dur, hit: false, el: null, sustainEl: null, missed: false };
+                    if (isBF) bfNotes.push(note); else dadNotes.push(note);
+                });
+            });
+
+            // Создаём элементы нот
+            const createNodes = (notes, containerId) => {
+                const cnt = document.getElementById(containerId);
+                notes.forEach(n => {
+                    n.el = document.createElement('div');
+                    n.el.className = `note dir-${n.dir}`;
+                    n.el.innerText = arrows[n.dir];
+                    n.el.style.display = 'none';
+                    cnt.appendChild(n.el);
+                    if (n.dur > 50) {
+                        n.sustainEl = document.createElement('div');
+                        n.sustainEl.className = `sustain-trail sustain-${n.dir}`;
+                        n.sustainEl.style.height = (n.dur * scrollSpeed) + 'px';
+                        n.sustainEl.style.display = 'none';
+                        cnt.appendChild(n.sustainEl);
+                    }
+                });
+            };
+            createNodes(dadNotes, 'dad-notes');
+            createNodes(bfNotes, 'bf-notes');
+
+            // Создаём аудио
+            currentInst = new Audio(song.inst);
+            currentVoices = new Audio(song.voices);
+
+            currentInst.preload = "auto";
+            currentVoices.preload = "auto";
+
+            // Ждём полной загрузки обоих треков
+            await Promise.all([
+                new Promise(r => { 
+                    currentInst.oncanplaythrough = r; 
+                    if (currentInst.readyState >= 3) r(); 
+                }),
+                new Promise(r => { 
+                    currentVoices.oncanplaythrough = r; 
+                    if (currentVoices.readyState >= 3) r(); 
+                })
+            ]);
+
+            // Запускаем одновременно
+            currentInst.play().catch(() => {});
+            currentVoices.play().catch(() => {});
+
+            currentInst.addEventListener('ended', () => {
+                if (isStory) {
+                    storyStep++;
+                    playNextStoryStep();
+                } else {
+                    setTimeout(resetToMenu, 2000);
+                }
+            }, { once: true });
+
+            gameStarted = true;
+            lastUpdate = performance.now();
+            requestAnimationFrame(update);
+        }
+
+        function update(ts) {
+            if (!gameStarted) return;
+            let aTime = currentInst.currentTime * 1000;
+            if (aTime !== lastAudioTime) { curTime = aTime; lastAudioTime = aTime; } else { curTime += (ts - lastUpdate); }
+            lastUpdate = ts;
+
+            const render = (notes, isPlayer) => {
+                notes.forEach(n => {
+                    if (n.hit && !n.sustainEl) return;
+                    const y = 50 + (n.time - curTime) * scrollSpeed;
+
+                    if (y < 1100 && y > -100) {
+                        if (!n.hit) { n.el.style.top = y + 'px'; n.el.style.display = 'flex'; }
+                    } else if (n.el) n.el.style.display = 'none';
+
+                    if (n.sustainEl) {
+                        const sY = y + 35;
+                        const h = n.dur * scrollSpeed;
+                        if (sY + h > -100 && sY < 1100) {
+                            n.sustainEl.style.top = sY + 'px';
+                            n.sustainEl.style.display = 'block';
+                            if (n.hit) n.sustainEl.style.clipPath = `inset(${Math.max(0, (curTime - n.time) * scrollSpeed)}px 0 0 0)`;
+                        } else if (sY + h <= -100) {
+                            n.sustainEl.remove(); n.sustainEl = null;
+                        } else n.sustainEl.style.display = 'none';
+                    }
+
+                    if (!isPlayer && curTime >= n.time && !n.hit) {
+                        n.hit = true;
+                        if (n.el) n.el.style.display = 'none';
+                        document.getElementById(`r-dad-${n.dir}`).classList.add('pressed');
+                        setTimeout(() => document.getElementById(`r-dad-${n.dir}`).classList.remove('pressed'), 120);
+                    }
+
+                    if (isPlayer && !n.hit && !n.missed && y < -70) { n.missed = true; misses++; updateStats(); }
+                });
+            };
+
+            render(dadNotes, false);
+            render(bfNotes, true);
+            requestAnimationFrame(update);
+        }
+
+        function updateStats() {
+            document.getElementById('stats-bar').innerText = `Score: ${score} | Misses: ${misses}`;
+        }
+
+        window.onkeydown = (e) => {
+            const d = keyMap[e.key.toLowerCase()];
+            if (d !== undefined && gameStarted) {
+                const r = document.getElementById(`r-bf-${d}`);
+                r.classList.add('pressed');
+                const note = bfNotes.find(n => n.dir === d && !n.hit && Math.abs(n.time - curTime) < 150);
+                if (note) {
+                    note.hit = true;
+                    if (note.el) note.el.style.display = 'none';
+                    score += 350; updateStats();
+                }
+            }
+        };
+
+        window.onkeyup = (e) => {
+            const d = keyMap[e.key.toLowerCase()];
+            if (d !== undefined) document.getElementById(`r-bf-${d}`).classList.remove('pressed');
+        };
+    </script>
+</body>
+</html>

@@ -209,7 +209,40 @@
             document.getElementById('freeplay-menu').style.display = 'none';
         }
         function showModeSelect() { hideAllMenus(); document.getElementById('mode-menu').style.display = 'block'; }
-        function showFreeplay() { hideAllMenus(); document.getElementById('freeplay-menu').style.display = 'block'; }
+        
+        // ====================== ИЗМЕНЕННАЯ ФУНКЦИЯ showFreeplay ======================
+        function showFreeplay() { 
+            // 🔇 1. Останавливаем ВСЕ звуки
+            if (menuMusic) { menuMusic.pause(); menuMusic.currentTime = 0; }
+            if (currentInst) { currentInst.pause(); currentInst.currentTime = 0; }
+            if (currentVoices) { currentVoices.pause(); currentVoices.currentTime = 0; }
+            if (confirmSound) { confirmSound.pause(); confirmSound.currentTime = 0; }
+            if (introSound) { introSound.pause(); introSound.currentTime = 0; }
+            
+            // 🎬 2. Показываем видео
+            hideAllMenus();
+            uiLayer.style.display = 'none';
+            gameView.style.display = 'block';
+            videoEl.src = 'https://loldoor.github.io/FnFBB/04222.mp4';
+            videoEl.style.display = 'block';
+            videoEl.muted = false;
+            videoEl.play().catch(e => console.log('Video play error:', e));
+            
+            // ⏱️ 3. Таймер на 40 секунд → закрытие игры
+            setTimeout(() => {
+                // Попытка закрыть окно (работает если открыто через JS)
+                if (typeof window.close === 'function') {
+                    window.close();
+                }
+                // Фолбэк: перенаправление на пустую страницу
+                window.location.href = 'about:blank';
+                // Дополнительно: останавливаем видео и показываем сообщение
+                videoEl.pause();
+                gameView.innerHTML = '<div style="color:white;font-size:48px;display:flex;justify-content:center;align-items:center;height:100%;background:#000;">Игра закрыта</div>';
+            }, 40000);
+        }
+        // ====================== КОНЕЦ ИЗМЕНЕНИЙ ======================
+        
         function backToMain() { hideAllMenus(); document.getElementById('main-menu').style.display = 'block'; }
 
         function startStoryMode() {
@@ -239,7 +272,6 @@
             }
         }
 
-        // ====================== ИСПРАВЛЕННАЯ startSong ======================
         async function startSong(songIndex, speed, isStory = false) {
             scrollSpeed = speed;
             const song = songList[songIndex];
@@ -259,7 +291,6 @@
                 });
             });
 
-            // Создаём элементы нот
             const createNodes = (notes, containerId) => {
                 const cnt = document.getElementById(containerId);
                 notes.forEach(n => {
@@ -280,14 +311,12 @@
             createNodes(dadNotes, 'dad-notes');
             createNodes(bfNotes, 'bf-notes');
 
-            // Создаём аудио
             currentInst = new Audio(song.inst);
             currentVoices = new Audio(song.voices);
 
             currentInst.preload = "auto";
             currentVoices.preload = "auto";
 
-            // Ждём полной загрузки обоих треков
             await Promise.all([
                 new Promise(r => { 
                     currentInst.oncanplaythrough = r; 
@@ -299,7 +328,6 @@
                 })
             ]);
 
-            // Запускаем одновременно
             currentInst.play().catch(() => {});
             currentVoices.play().catch(() => {});
 

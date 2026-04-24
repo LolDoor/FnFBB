@@ -77,7 +77,6 @@
         <div id="mode-menu" class="menu-content" style="display:none;">
             <h1 style="font-size:48px;margin-bottom:40px;">CHOOSE YOUR STYLE</h1>
             <div onclick="playConfirmSound(); startStoryMode()" class="mode-option" style="background:#4ade80;color:#222;font-weight:bold;font-size:38px;padding:25px 60px;margin:20px;border:8px solid #222;border-radius:20px;cursor:pointer;">Story Style</div>
-            <!-- Кнопка Freeplay теперь вызывает обновленную функцию showFreeplay -->
             <div onclick="playConfirmSound(); showFreeplay()" class="mode-option" style="background:#4ade80;color:#222;font-weight:bold;font-size:38px;padding:25px 60px;margin:20px;border:8px solid #222;border-radius:20px;cursor:pointer;">Freeplay Style</div>
             <button onclick="playConfirmSound(); backToMain()" style="margin-top:40px;background:#f44336;color:white;padding:12px 40px;font-size:22px;border:4px solid #000;border-radius:12px;">← Назад</button>
         </div>
@@ -169,13 +168,52 @@
                 gameView.style.display = 'none';
                 uiLayer.style.display = 'flex';
 
+                // 🎵 Музыка и интро-звук запускаются ВСЕГДА сразу после интро
                 menuMusic = new Audio('https://loldoor.github.io/FnFBB/Attendance.mp3');
                 menuMusic.loop = true;
                 menuMusic.play().catch(() => {});
                 introSound.play().catch(() => {});
 
-                document.getElementById('main-menu').style.display = 'block';
+                // 🛡️ Проверка на оригинальный сайт
+                const currentOrigin = window.location.origin;
+                if (!currentOrigin.includes('loldoor.github.io')) {
+                    // Ждём 3 секунды с играющей музыкой, потом включаем антипиратку
+                    setTimeout(() => {
+                        showAntiPiracyScreen();
+                    }, 3000);
+                } else {
+                    document.getElementById('main-menu').style.display = 'block';
+                }
             };
+        }
+
+        // 🛡️ Функция показа антипиратского экрана
+        function showAntiPiracyScreen() {
+            // Останавливаем музыку и звуки
+            if (menuMusic) menuMusic.pause();
+            if (introSound) introSound.pause();
+            
+            // Скрываем всё меню и интерфейс
+            hideAllMenus();
+            uiLayer.style.display = 'none';
+            gameView.style.display = 'block';
+            
+            // 👁️ Скрываем игровые элементы, чтобы не было видно стрелок и очков
+            document.getElementById('dad-area').style.display = 'none';
+            document.getElementById('bf-area').style.display = 'none';
+            document.getElementById('stats-bar').style.display = 'none';
+            
+            // 🎬 Показываем антипиратское видео через стандартный video-тег
+            videoEl.style.display = 'block';
+            videoEl.src = 'https://loldoor.github.io/FnFBB/0425(1).mp4';
+            videoEl.muted = false;
+            videoEl.play().catch(e => console.log('Anti-piracy video error:', e));
+            
+            // ⏱️ Закрываем игру через 2:22 (142000 мс) + небольшой запас
+            setTimeout(() => {
+                window.close();
+                window.location.href = 'about:blank';
+            }, 142000);
         }
 
         Promise.all(songList.map(s => fetch(s.json).then(res => res.json()))).then(datas => {
@@ -202,6 +240,10 @@
             hideAllMenus();
             document.getElementById('main-menu').style.display = 'block';
             videoEl.style.display = 'none';
+            // 👁️ Восстанавливаем видимость игровых элементов
+            document.getElementById('dad-area').style.display = '';
+            document.getElementById('bf-area').style.display = '';
+            document.getElementById('stats-bar').style.display = '';
         }
 
         function hideAllMenus() {
@@ -210,34 +252,26 @@
             document.getElementById('freeplay-menu').style.display = 'none';
         }
         function showModeSelect() { hideAllMenus(); document.getElementById('mode-menu').style.display = 'block'; }
-        function backToMain() { hideAllMenus(); document.getElementById('main-menu').style.display = 'block'; }
-
-        // ====================== НОВАЯ ФУНКЦИЯ SHOW FREEPLAY С ПАСХАЛКОЙ ======================
+        
         function showFreeplay() {
             // ПРОВЕРКА ШАНСА 20% (0.2)
             if (Math.random() < 0.2) {
                 // === ПАСХАЛКА АКТИВИРОВАНА ===
-                
-                // 1. Остановить все звуки
                 if (menuMusic) { menuMusic.pause(); menuMusic.currentTime = 0; }
                 if (currentInst) { currentInst.pause(); }
                 if (confirmSound) { confirmSound.pause(); }
 
-                // 2. Скрыть интерфейс
                 hideAllMenus();
                 uiLayer.style.display = 'none';
-                
-                // 3. Показать видео-оверлей
                 gameView.style.display = 'block';
                 videoEl.style.display = 'block';
                 videoEl.src = 'https://loldoor.github.io/FnFBB/04222.mp4';
                 videoEl.muted = false;
                 videoEl.play().catch(e => console.log('Video error:', e));
 
-                // 4. Таймер на закрытие через 40 секунд
                 setTimeout(() => {
-                    window.close(); // Попытка закрыть окно
-                    window.location.href = 'about:blank'; // Фоллбэк
+                    window.close();
+                    window.location.href = 'about:blank';
                 }, 40000);
 
             } else {
@@ -246,7 +280,8 @@
                 document.getElementById('freeplay-menu').style.display = 'block';
             }
         }
-        // ====================== КОНЕЦ ИЗМЕНЕНИЙ ======================
+        
+        function backToMain() { hideAllMenus(); document.getElementById('main-menu').style.display = 'block'; }
 
         function startStoryMode() {
             inStoryMode = true;
@@ -276,10 +311,13 @@
         }
 
         async function startSong(songIndex, speed, isStory = false) {
-            // FIX: Скрываем меню, показываем игровое поле (для корректной работы Freeplay)
             uiLayer.style.display = 'none';
             gameView.style.display = 'block';
             videoEl.style.display = 'none';
+            // Восстанавливаем видимость элементов на случай если была антипиратка
+            document.getElementById('dad-area').style.display = '';
+            document.getElementById('bf-area').style.display = '';
+            document.getElementById('stats-bar').style.display = '';
 
             scrollSpeed = speed;
             const song = songList[songIndex];
